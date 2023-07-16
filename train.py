@@ -312,6 +312,9 @@ for epoch in pbar:
     if iter_num == 0 and eval_only:
         break
 
+    allocated_memory = torch.cuda.memory_allocated() / 1024 ** 3  # 转换为GB
+    pbar.set_postfix(mem=allocated_memory)
+    
     # forward backward update, with optional gradient accumulation to simulate larger batch size
     # and using the GradScaler if data type is float16
     for micro_step in range(gradient_accumulation_steps):
@@ -324,7 +327,7 @@ for epoch in pbar:
         with ctx:
             logits, loss = model(X, Y)
             loss = loss / gradient_accumulation_steps  # scale the loss to account for gradient accumulation
-        pbar.set_postfix(step=iter_num, loss=loss.item(), mfu=running_mfu * 100)
+        pbar.set_postfix(loss=loss.item(), mfu=running_mfu * 100)
         # pbar.update(1)
         # immediately async prefetch next batch while model is doing the forward pass on the GPU
         X, Y = get_batch("train")
